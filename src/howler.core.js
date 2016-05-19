@@ -37,6 +37,7 @@
       self._volume = 1;
       self._canPlayEvent = 'canplaythrough';
       self._navigator = (typeof window !== 'undefined' && window.navigator) ? window.navigator : null;
+      self._isAndroid = /Android/i.test(self._navigator && self._navigator.userAgent);
 
       // Public properties.
       self.masterGain = null;
@@ -363,7 +364,9 @@
       }
 
       // AudioContext breaks on Android Chrome 50, we unload the context and set up a new context.
-      self.unloadContext();
+      if (self._isAndroid) { 
+        self.unloadContext();
+      }
 
       if (self.state === 'running' && self._suspendTimer) {
         clearTimeout(self._suspendTimer);
@@ -648,13 +651,8 @@
       if (self._webAudio) {
         // Fire this when the sound is ready to play to begin Web Audio playback.
         var playWebAudio = function() {
-
-          // Recreate the node due to AudioContext issues.
-          sound._node = (typeof Howler.ctx.createGain === 'undefined') ? Howler.ctx.createGainNode() : Howler.ctx.createGain();
-          sound._node.connect(Howler.ctx.destination);
-          node = sound._node;
-
           self._refreshBuffer(sound);
+          node = sound._node;
 
           // Setup the playback params.
           var vol = (sound._muted || self._muted) ? 0 : sound._volume * Howler.volume();
@@ -1741,6 +1739,11 @@
      */
     _refreshBuffer: function(sound) {
       var self = this;
+
+      if (Howler._isAndroid) {
+        sound._node = (typeof Howler.ctx.createGain === 'undefined') ? Howler.ctx.createGainNode() : Howler.ctx.createGain();
+        sound._node.connect(Howler.ctx.destination);
+      }
 
       // Setup the buffer source for playback.
       sound._node.bufferSource = Howler.ctx.createBufferSource();
