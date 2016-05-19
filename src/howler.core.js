@@ -150,6 +150,18 @@
       }
 
       // Create a new AudioContext to make sure it is fully reset.
+      self.unloadContext();
+
+      return self;
+    },
+
+    /**
+     * Unloads the AudioContext and sets up a new context.
+     * @return {Howler}
+     */
+    unloadContext: function() {
+      var self = this || Howler;
+
       if (self.usingWebAudio && typeof self.ctx.close !== 'undefined') {
         self.ctx.close();
         self.ctx = null;
@@ -349,6 +361,9 @@
       if (!self.ctx || typeof self.ctx.resume === 'undefined' || !Howler.usingWebAudio) {
         return;
       }
+
+      // AudioContext breaks on Android Chrome 50, we unload the context and set up a new context.
+      self.unloadContext();
 
       if (self.state === 'running' && self._suspendTimer) {
         clearTimeout(self._suspendTimer);
@@ -633,6 +648,12 @@
       if (self._webAudio) {
         // Fire this when the sound is ready to play to begin Web Audio playback.
         var playWebAudio = function() {
+
+          // Recreate the node due to AudioContext issues.
+          sound._node = (typeof Howler.ctx.createGain === 'undefined') ? Howler.ctx.createGainNode() : Howler.ctx.createGain();
+          sound._node.connect(Howler.ctx.destination);
+          node = sound._node;
+
           self._refreshBuffer(sound);
 
           // Setup the playback params.
