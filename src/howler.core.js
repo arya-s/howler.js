@@ -344,6 +344,8 @@
 
           if (self._resumeAfterSuspend) {
             delete self._resumeAfterSuspend;
+          // AudioContext breaks on Android Chrome 50, we unload the context and set up a new context.
+            self.unloadContext();
             self._autoResume();
           }
         });
@@ -361,11 +363,6 @@
 
       if (!self.ctx || typeof self.ctx.resume === 'undefined' || !Howler.usingWebAudio) {
         return;
-      }
-
-      // AudioContext breaks on Android Chrome 50, we unload the context and set up a new context.
-      if (self._isAndroid) { 
-        self.unloadContext();
       }
 
       if (self.state === 'running' && self._suspendTimer) {
@@ -633,7 +630,7 @@
       }
 
       // Determine how long to play for and where to start playing.
-      var seek = sound._seek > 0 ? sound._seek : self._sprite[sprite][0] / 1000;
+      var seek = sound._seek > 0 ? sound._seek : 0;
       var duration = ((self._sprite[sprite][0] + self._sprite[sprite][1]) / 1000) - seek;
       var timeout = (duration * 1000) / Math.abs(sound._rate);
 
@@ -661,9 +658,9 @@
 
           // Play the sound using the supported method.
           if (typeof node.bufferSource.start === 'undefined') {
-            sound._loop ? node.bufferSource.noteGrainOn(0, seek, 86400) : node.bufferSource.noteGrainOn(0, seek, duration);
+            sound._loop ? node.bufferSource.noteGrainOn(0, seek, 86400) : node.bufferSource.noteGrainOn(0, seek);
           } else {
-            sound._loop ? node.bufferSource.start(0, seek, 86400) : node.bufferSource.start(0, seek, duration);
+            sound._loop ? node.bufferSource.start(0, seek, 86400) : node.bufferSource.start(0, seek);
           }
 
           // Start a new timer if none is present.
